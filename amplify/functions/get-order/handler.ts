@@ -34,7 +34,9 @@ Amplify.configure(
 
 const client = generateClient<Schema>();
 
-export const handler: Schema["getOrder"]["functionHandler"] = async (event) => {
+export const handler: Schema["getOrderDetails"]["functionHandler"] = async (
+  event
+) => {
   try {
     const { orderId } = event.arguments;
 

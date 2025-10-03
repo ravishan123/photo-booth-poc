@@ -10,7 +10,7 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
  */
 const schema = a.schema({
   // Custom queries and mutations
-  createOrder: a
+  createOrderCustom: a
     .mutation()
     .arguments({
       input: a.json().required(),
@@ -19,7 +19,7 @@ const schema = a.schema({
     .authorization((allow) => [allow.guest(), allow.authenticated()])
     .handler(a.handler.function("createOrder")),
 
-  getOrder: a
+  getOrderDetails: a
     .query()
     .arguments({
       orderId: a.string().required(),
@@ -39,11 +39,11 @@ const schema = a.schema({
     .authorization((allow) => [allow.guest(), allow.authenticated()])
     .handler(a.handler.function("updateOrderStatus")),
 
-  listOrders: a
+  listOrdersCustom: a
     .query()
     .arguments({
       customerId: a.string(),
-      status: a.string(),
+      status: a.enum(["PENDING", "PROCESSING", "COMPLETED", "FAILED"]),
       limit: a.integer(),
       nextToken: a.string(),
     })

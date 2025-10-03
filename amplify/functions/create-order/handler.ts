@@ -98,7 +98,7 @@ function validateOrderInput(input: any): {
   return { valid: errors.length === 0, errors };
 }
 
-export const handler: Schema["createOrder"]["functionHandler"] = async (
+export const handler: Schema["createOrderCustom"]["functionHandler"] = async (
   event
 ) => {
   try {
