@@ -129,15 +129,11 @@ const graphqlApiEndpoint = dataResources.graphqlApi.apiId;
 /**
  * Outputs for frontend configuration
  * These will be automatically written to amplify_outputs.json
+ * Note: aws_region is automatically provided by Amplify built-in resources
  */
 backend.addOutput({
-  storage: {
-    aws_region: backend.storage.resources.bucket.stack.region,
-    bucket_name: backend.storage.resources.bucket.bucketName,
-  },
   custom: {
     apiId: graphqlApiEndpoint,
-    region: backend.storage.resources.bucket.stack.region,
     environment: "development",
   },
 });
