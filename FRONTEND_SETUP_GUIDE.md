@@ -147,26 +147,53 @@ import type { Schema } from "../amplify/data/resource";
 
 const client = generateClient<Schema>();
 
-export interface OrderItem {
-  id: string;
-  name: string;
-  quantity: number;
-  price: number;
-}
-
-export interface CreateOrderInput {
-  customerId: string;
-  items: OrderItem[];
-  currency?: string;
+export interface OrderRequest {
+  type: "album" | "collage";
+  images: string[]; // Base64 encoded images or URLs
+  userDetails: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    postalCode: string;
+    specialInstructions?: string;
+  };
+  metadata?: {
+    orientation?: "portrait" | "landscape";
+    pageCount?: number;
+    dimensions?: {
+      width: number;
+      height: number;
+    };
+  };
 }
 
 export interface Order {
   orderId: string;
-  customerId: string;
+  type: "album" | "collage";
   status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
   totalPrice: number;
   currency: string;
-  items: OrderItem[];
+  imageCount: number;
+  images: string[];
+  userDetails: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    postalCode: string;
+    specialInstructions?: string;
+  };
+  metadata?: {
+    orientation?: "portrait" | "landscape";
+    pageCount?: number;
+    dimensions?: {
+      width: number;
+      height: number;
+    };
+  };
   errorMessage?: string;
   createdAt: string;
   updatedAt: string;
@@ -174,7 +201,7 @@ export interface Order {
 
 export class PhotoBoothAPI {
   // Create Order
-  static async createOrder(input: CreateOrderInput) {
+  static async createOrder(input: OrderRequest) {
     try {
       const result = await client.mutations.createOrderCustom({ input });
 
@@ -220,8 +247,9 @@ export class PhotoBoothAPI {
   // List Orders
   static async listOrders(
     params: {
-      customerId?: string;
+      customerEmail?: string;
       status?: string;
+      type?: string;
       limit?: number;
       nextToken?: string;
     } = {}
@@ -367,11 +395,7 @@ Create `src/components/CreateOrder.tsx`:
 
 ```tsx
 import React, { useState } from "react";
-import {
-  PhotoBoothAPI,
-  type CreateOrderInput,
-  type OrderItem,
-} from "../services/api";
+import { PhotoBoothAPI, type OrderRequest } from "../services/api";
 
 const CreateOrder: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -382,17 +406,26 @@ const CreateOrder: React.FC = () => {
     setLoading(true);
     setError(null);
 
-    const orderData: CreateOrderInput = {
-      customerId: `customer-${Date.now()}`,
-      items: [
-        {
-          id: "photo-package-1",
-          name: "Digital Photo Package",
-          quantity: 1,
-          price: 25.0,
+    const orderData: OrderRequest = {
+      type: "album",
+      images: ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ..."],
+      userDetails: {
+        name: "John Doe",
+        email: "john@example.com",
+        phone: "+1234567890",
+        address: "123 Main St",
+        city: "New York",
+        postalCode: "10001",
+        specialInstructions: "Please make it extra glossy",
+      },
+      metadata: {
+        orientation: "portrait",
+        pageCount: 1,
+        dimensions: {
+          width: 8.5,
+          height: 11,
         },
-      ],
-      currency: "USD",
+      },
     };
 
     const result = await PhotoBoothAPI.createOrder(orderData);
@@ -1000,16 +1033,20 @@ const testAPI = async () => {
   // Test 1: Create Order
   console.log("\n1. Testing order creation...");
   const orderResult = await PhotoBoothAPI.createOrder({
-    customerId: "test-customer-123",
-    items: [
-      {
-        id: "test-package",
-        name: "Test Photo Package",
-        quantity: 1,
-        price: 20.0,
-      },
-    ],
-    currency: "USD",
+    type: "album",
+    images: ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ..."],
+    userDetails: {
+      name: "Test Customer",
+      email: "test@example.com",
+      phone: "+1234567890",
+      address: "123 Test St",
+      city: "Test City",
+      postalCode: "12345",
+    },
+    metadata: {
+      orientation: "portrait",
+      pageCount: 1,
+    },
   });
 
   if (orderResult.success) {

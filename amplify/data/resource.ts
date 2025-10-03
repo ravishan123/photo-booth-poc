@@ -16,7 +16,7 @@ const schema = a.schema({
       input: a.json().required(),
     })
     .returns(a.json())
-    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .authorization((allow) => [allow.publicApiKey()])
     .handler(a.handler.function("createOrder")),
 
   getOrderDetails: a
@@ -25,7 +25,7 @@ const schema = a.schema({
       orderId: a.string().required(),
     })
     .returns(a.json())
-    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .authorization((allow) => [allow.publicApiKey()])
     .handler(a.handler.function("getOrder")),
 
   updateOrderStatus: a
@@ -36,19 +36,20 @@ const schema = a.schema({
       errorMessage: a.string(),
     })
     .returns(a.json())
-    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .authorization((allow) => [allow.publicApiKey()])
     .handler(a.handler.function("updateOrderStatus")),
 
   listOrdersCustom: a
     .query()
     .arguments({
-      customerId: a.string(),
+      customerEmail: a.string(),
       status: a.enum(["PENDING", "PROCESSING", "COMPLETED", "FAILED"]),
+      type: a.enum(["album", "collage"]),
       limit: a.integer(),
       nextToken: a.string(),
     })
     .returns(a.json())
-    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .authorization((allow) => [allow.publicApiKey()])
     .handler(a.handler.function("listOrders")),
 
   presignAlbumUpload: a
@@ -57,7 +58,7 @@ const schema = a.schema({
       input: a.json().required(),
     })
     .returns(a.json())
-    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .authorization((allow) => [allow.publicApiKey()])
     .handler(a.handler.function("presignAlbumUpload")),
 
   presignCollageUpload: a
@@ -66,7 +67,7 @@ const schema = a.schema({
       input: a.json().required(),
     })
     .returns(a.json())
-    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .authorization((allow) => [allow.publicApiKey()])
     .handler(a.handler.function("presignCollageUpload")),
 
   processOrder: a
@@ -75,30 +76,34 @@ const schema = a.schema({
       orderId: a.string().required(),
     })
     .returns(a.json())
-    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .authorization((allow) => [allow.publicApiKey()])
     .handler(a.handler.function("processOrder")),
 
   Order: a
     .model({
-      customerId: a.string().required(),
+      customerEmail: a.string().required(),
+      type: a.enum(["album", "collage"]),
       status: a.enum(["PENDING", "PROCESSING", "COMPLETED", "FAILED"]),
       totalPrice: a.float().required(),
       currency: a.string().default("USD"),
-      items: a.json().required(), // Array of order items
+      imageCount: a.integer().required(),
+      images: a.json().required(), // Base64 encoded images or URLs
+      userDetails: a.json().required(), // Customer information
+      metadata: a.json(), // Order metadata (orientation, pageCount, dimensions)
       errorMessage: a.string(),
       expiresAt: a.integer(), // Unix timestamp for TTL
       createdAt: a.datetime(),
       updatedAt: a.datetime(),
     })
     .secondaryIndexes((index) => [
-      index("customerId")
+      index("customerEmail")
         .sortKeys(["createdAt"])
         .queryField("listOrdersByCustomer"),
       index("status").sortKeys(["createdAt"]).queryField("listOrdersByStatus"),
+      index("type").sortKeys(["createdAt"]).queryField("listOrdersByType"),
     ])
     .authorization((allow) => [
-      allow.guest(), // Public access for now - ready for future Cognito
-      allow.authenticated().to(["read", "create", "update"]),
+      allow.publicApiKey().to(["read", "create", "update"]),
     ]),
 
   Album: a
@@ -119,8 +124,7 @@ const schema = a.schema({
         .queryField("listAlbumsByCustomer"),
     ])
     .authorization((allow) => [
-      allow.guest(),
-      allow.authenticated().to(["read", "create", "update"]),
+      allow.publicApiKey().to(["read", "create", "update"]),
     ]),
 
   Collage: a
@@ -142,8 +146,7 @@ const schema = a.schema({
         .queryField("listCollagesByCustomer"),
     ])
     .authorization((allow) => [
-      allow.guest(),
-      allow.authenticated().to(["read", "create", "update"]),
+      allow.publicApiKey().to(["read", "create", "update"]),
     ]),
 });
 
@@ -152,6 +155,6 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: "identityPool",
+    defaultAuthorizationMode: "apiKey",
   },
 });

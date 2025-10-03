@@ -36,14 +36,25 @@ Amplify.configure(
 const client = generateClient<Schema>();
 
 interface CreateOrderInput {
-  customerId: string;
-  items: Array<{
-    id: string;
+  type: "album" | "collage";
+  images: string[]; // Base64 encoded images or URLs
+  userDetails: {
     name: string;
-    quantity: number;
-    price: number;
-  }>;
-  currency?: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    postalCode: string;
+    specialInstructions?: string;
+  };
+  metadata?: {
+    orientation?: "portrait" | "landscape";
+    pageCount?: number;
+    dimensions?: {
+      width: number;
+      height: number;
+    };
+  };
 }
 
 interface ValidationError {
@@ -57,42 +68,101 @@ function validateOrderInput(input: any): {
 } {
   const errors: ValidationError[] = [];
 
-  if (!input.customerId || typeof input.customerId !== "string") {
+  if (!input.type || !["album", "collage"].includes(input.type)) {
     errors.push({
-      field: "customerId",
-      message: "Customer ID is required and must be a string",
+      field: "type",
+      message: "Type is required and must be 'album' or 'collage'",
     });
   }
 
-  if (!Array.isArray(input.items) || input.items.length === 0) {
-    errors.push({ field: "items", message: "Items must be a non-empty array" });
+  if (!Array.isArray(input.images) || input.images.length === 0) {
+    errors.push({
+      field: "images",
+      message: "Images must be a non-empty array",
+    });
+  }
+
+  if (!input.userDetails || typeof input.userDetails !== "object") {
+    errors.push({
+      field: "userDetails",
+      message: "User details are required",
+    });
   } else {
-    input.items.forEach((item: any, index: number) => {
-      if (!item.id || typeof item.id !== "string") {
+    const requiredFields = [
+      "name",
+      "email",
+      "phone",
+      "address",
+      "city",
+      "postalCode",
+    ];
+    requiredFields.forEach((field) => {
+      if (
+        !input.userDetails[field] ||
+        typeof input.userDetails[field] !== "string"
+      ) {
         errors.push({
-          field: `items[${index}].id`,
-          message: "Item ID is required",
-        });
-      }
-      if (!item.name || typeof item.name !== "string") {
-        errors.push({
-          field: `items[${index}].name`,
-          message: "Item name is required",
-        });
-      }
-      if (typeof item.quantity !== "number" || item.quantity <= 0) {
-        errors.push({
-          field: `items[${index}].quantity`,
-          message: "Quantity must be a positive number",
-        });
-      }
-      if (typeof item.price !== "number" || item.price < 0) {
-        errors.push({
-          field: `items[${index}].price`,
-          message: "Price must be a non-negative number",
+          field: `userDetails.${field}`,
+          message: `${field} is required`,
         });
       }
     });
+
+    // Validate email format
+    if (
+      input.userDetails.email &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.userDetails.email)
+    ) {
+      errors.push({
+        field: "userDetails.email",
+        message: "Invalid email format",
+      });
+    }
+  }
+
+  // Validate metadata if provided
+  if (input.metadata) {
+    if (
+      input.metadata.orientation &&
+      !["portrait", "landscape"].includes(input.metadata.orientation)
+    ) {
+      errors.push({
+        field: "metadata.orientation",
+        message: "Orientation must be 'portrait' or 'landscape'",
+      });
+    }
+
+    if (
+      input.metadata.pageCount &&
+      (typeof input.metadata.pageCount !== "number" ||
+        input.metadata.pageCount <= 0)
+    ) {
+      errors.push({
+        field: "metadata.pageCount",
+        message: "Page count must be a positive number",
+      });
+    }
+
+    if (input.metadata.dimensions) {
+      if (
+        typeof input.metadata.dimensions.width !== "number" ||
+        input.metadata.dimensions.width <= 0
+      ) {
+        errors.push({
+          field: "metadata.dimensions.width",
+          message: "Width must be a positive number",
+        });
+      }
+      if (
+        typeof input.metadata.dimensions.height !== "number" ||
+        input.metadata.dimensions.height <= 0
+      ) {
+        errors.push({
+          field: "metadata.dimensions.height",
+          message: "Height must be a positive number",
+        });
+      }
+    }
   }
 
   return { valid: errors.length === 0, errors };
@@ -117,19 +187,27 @@ export const handler: Schema["createOrderCustom"]["functionHandler"] = async (
       };
     }
 
-    // Calculate total price
-    const totalPrice = input.items.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
+    // Calculate total price based on type and image count
+    let totalPrice = 0;
+    if (input.type === "album") {
+      // Album pricing: $2 per image + $5 base fee
+      totalPrice = input.images.length * 2 + 5;
+    } else if (input.type === "collage") {
+      // Collage pricing: $3 per image + $3 base fee
+      totalPrice = input.images.length * 3 + 3;
+    }
 
     // Create order
     const { data: order, errors } = await client.models.Order.create({
-      customerId: input.customerId,
+      customerEmail: input.userDetails.email,
+      type: input.type,
       status: "PENDING",
       totalPrice,
-      currency: input.currency || "USD",
-      items: JSON.stringify(input.items),
+      currency: "USD",
+      imageCount: input.images.length,
+      images: JSON.stringify(input.images),
+      userDetails: JSON.stringify(input.userDetails),
+      metadata: input.metadata ? JSON.stringify(input.metadata) : null,
     });
 
     if (errors || !order) {
@@ -147,9 +225,13 @@ export const handler: Schema["createOrderCustom"]["functionHandler"] = async (
       statusCode: 201,
       body: JSON.stringify({
         orderId: order.id,
+        type: order.type,
         status: order.status,
         totalPrice: order.totalPrice,
         currency: order.currency,
+        imageCount: order.imageCount,
+        userDetails: JSON.parse(order.userDetails as string),
+        metadata: order.metadata ? JSON.parse(order.metadata as string) : null,
         createdAt: order.createdAt,
       }),
     };

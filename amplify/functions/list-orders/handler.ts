@@ -38,14 +38,14 @@ export const handler: Schema["listOrdersCustom"]["functionHandler"] = async (
   event
 ) => {
   try {
-    const { customerId, status, limit, nextToken } = event.arguments;
+    const { customerEmail, status, type, limit, nextToken } = event.arguments;
 
     let result;
 
-    if (customerId) {
-      // Query by customer ID
+    if (customerEmail) {
+      // Query by customer email
       result = await client.models.Order.listOrdersByCustomer(
-        { customerId },
+        { customerEmail },
         {
           limit: limit || 20,
           nextToken: nextToken || undefined,
@@ -56,6 +56,16 @@ export const handler: Schema["listOrdersCustom"]["functionHandler"] = async (
       // Query by status
       result = await client.models.Order.listOrdersByStatus(
         { status },
+        {
+          limit: limit || 20,
+          nextToken: nextToken || undefined,
+          sortDirection: "DESC",
+        }
+      );
+    } else if (type) {
+      // Query by type
+      result = await client.models.Order.listOrdersByType(
+        { type },
         {
           limit: limit || 20,
           nextToken: nextToken || undefined,
@@ -85,11 +95,13 @@ export const handler: Schema["listOrdersCustom"]["functionHandler"] = async (
 
     const formattedOrders = orders.map((order) => ({
       orderId: order.id,
-      customerId: order.customerId,
+      type: order.type,
       status: order.status,
       totalPrice: order.totalPrice,
       currency: order.currency,
-      items: JSON.parse(order.items as string),
+      imageCount: order.imageCount,
+      userDetails: JSON.parse(order.userDetails as string),
+      metadata: order.metadata ? JSON.parse(order.metadata as string) : null,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
     }));
