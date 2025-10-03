@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+
+# Amplify
+amplify_outputs.json
+amplify_outputs.ts
+.amplify/
+amplify/mock-data/
+
+# Build outputs
+dist/
+build/
+.esbuild/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# TypeScript
+*.tsbuildinfo
+
+# AWS
+.aws-sam/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
