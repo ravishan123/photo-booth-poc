@@ -19,21 +19,32 @@ This document describes the complete API contract for the Ape Moments Photo Boot
 
 **Mutation**: `createOrderCustom`
 
-Creates a new photo booth order with items and pricing.
+Creates a new photo booth order with images and user details.
 
 **Input**:
 
 ```typescript
 {
   input: {
-    customerId: string;           // Required: Customer identifier
-    items: Array<{               // Required: Order items
-      id: string;                // Item ID
-      name: string;              // Item name
-      quantity: number;          // Quantity (must be > 0)
-      price: number;             // Price per item (must be >= 0)
-    }>;
-    currency?: string;           // Optional: Currency code (default: "USD")
+    type: "album" | "collage";   // Required: Order type
+    images: string[];            // Required: Base64 encoded images or URLs
+    userDetails: {               // Required: Customer information
+      name: string;              // Customer name
+      email: string;             // Customer email
+      phone: string;             // Customer phone
+      address: string;           // Customer address
+      city: string;              // Customer city
+      postalCode: string;        // Customer postal code
+      specialInstructions?: string; // Optional: Special instructions
+    };
+    metadata?: {                // Optional: Order metadata
+      orientation?: "portrait" | "landscape";
+      pageCount?: number;
+      dimensions?: {
+        width: number;
+        height: number;
+      };
+    };
   }
 }
 ```
@@ -45,9 +56,28 @@ Creates a new photo booth order with items and pricing.
   statusCode: 201;
   body: {
     orderId: string;
+    type: "album" | "collage";
     status: "PENDING";
     totalPrice: number;
     currency: string;
+    imageCount: number;
+    userDetails: {
+      name: string;
+      email: string;
+      phone: string;
+      address: string;
+      city: string;
+      postalCode: string;
+      specialInstructions?: string;
+    };
+    metadata?: {
+      orientation?: "portrait" | "landscape";
+      pageCount?: number;
+      dimensions?: {
+        width: number;
+        height: number;
+      };
+    };
     createdAt: string;
   }
 }
@@ -82,16 +112,29 @@ Retrieves detailed information about a specific order.
   statusCode: 200;
   body: {
     orderId: string;
-    customerId: string;
+    type: "album" | "collage";
     status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
     totalPrice: number;
     currency: string;
-    items: Array<{
-      id: string;
+    imageCount: number;
+    images: string[];            // Base64 encoded images or URLs
+    userDetails: {
       name: string;
-      quantity: number;
-      price: number;
-    }>;
+      email: string;
+      phone: string;
+      address: string;
+      city: string;
+      postalCode: string;
+      specialInstructions?: string;
+    };
+    metadata?: {
+      orientation?: "portrait" | "landscape";
+      pageCount?: number;
+      dimensions?: {
+        width: number;
+        height: number;
+      };
+    };
     errorMessage?: string;
     createdAt: string;
     updatedAt: string;
@@ -117,10 +160,11 @@ Retrieves a paginated list of orders with optional filtering.
 
 ```typescript
 {
-  customerId?: string;                    // Filter by customer
+  customerEmail?: string;                    // Filter by customer email
   status?: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";  // Filter by status
-  limit?: number;                         // Page size (default: 20)
-  nextToken?: string;                     // Pagination token
+  type?: "album" | "collage";               // Filter by order type
+  limit?: number;                           // Page size (default: 20)
+  nextToken?: string;                       // Pagination token
 }
 ```
 
@@ -132,11 +176,28 @@ Retrieves a paginated list of orders with optional filtering.
   body: {
     orders: Array<{
       orderId: string;
-      customerId: string;
+      type: "album" | "collage";
       status: string;
       totalPrice: number;
       currency: string;
-      items: Array<object>;
+      imageCount: number;
+      userDetails: {
+        name: string;
+        email: string;
+        phone: string;
+        address: string;
+        city: string;
+        postalCode: string;
+        specialInstructions?: string;
+      };
+      metadata?: {
+        orientation?: "portrait" | "landscape";
+        pageCount?: number;
+        dimensions?: {
+          width: number;
+          height: number;
+        };
+      };
       createdAt: string;
       updatedAt: string;
     }>;
@@ -351,11 +412,14 @@ Generates a presigned URL for uploading collage images to S3.
 ```typescript
 {
   id: string;                    // Primary key
-  customerId: string;            // Customer identifier
+  type: "album" | "collage";    // Order type
   status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
   totalPrice: number;            // Total order amount
   currency: string;              // Currency code (default: "USD")
-  items: string;                 // JSON string of order items
+  imageCount: number;             // Number of images
+  images: string;                 // JSON string of base64 images or URLs
+  userDetails: string;           // JSON string of user information
+  metadata?: string;             // JSON string of order metadata
   errorMessage?: string;         // Error details for failed orders
   expiresAt?: number;            // Unix timestamp for TTL
   createdAt: string;             // ISO datetime

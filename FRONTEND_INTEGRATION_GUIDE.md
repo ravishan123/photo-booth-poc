@@ -101,26 +101,36 @@ const client = generateClient<Schema>();
 #### Create Order
 
 ```typescript
-interface OrderItem {
-  id: string;
-  name: string;
-  quantity: number;
-  price: number;
+interface OrderRequest {
+  type: "album" | "collage";
+  images: string[]; // Base64 encoded images or URLs
+  userDetails: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    postalCode: string;
+    specialInstructions?: string;
+  };
+  metadata?: {
+    orientation?: "portrait" | "landscape";
+    pageCount?: number;
+    dimensions?: {
+      width: number;
+      height: number;
+    };
+  };
 }
 
-interface CreateOrderInput {
-  customerId: string;
-  items: OrderItem[];
-  currency?: string;
-}
-
-const createOrder = async (input: CreateOrderInput) => {
+const createOrder = async (input: OrderRequest) => {
   try {
     const result = await client.mutations.createOrderCustom({
       input: {
-        customerId: input.customerId,
-        items: input.items,
-        currency: input.currency || "USD",
+        type: input.type,
+        images: input.images,
+        userDetails: input.userDetails,
+        metadata: input.metadata,
       },
     });
 
@@ -144,16 +154,25 @@ const createOrder = async (input: CreateOrderInput) => {
 
 // Usage example
 const newOrder = await createOrder({
-  customerId: "customer-123",
-  items: [
-    {
-      id: "photo-package-1",
-      name: "Digital Photo Package",
-      quantity: 1,
-      price: 25.0,
+  type: "album",
+  images: ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ..."],
+  userDetails: {
+    name: "John Doe",
+    email: "john@example.com",
+    phone: "+1234567890",
+    address: "123 Main St",
+    city: "New York",
+    postalCode: "10001",
+    specialInstructions: "Please make it extra glossy",
+  },
+  metadata: {
+    orientation: "portrait",
+    pageCount: 20,
+    dimensions: {
+      width: 8.5,
+      height: 11,
     },
-  ],
-  currency: "USD",
+  },
 });
 ```
 
@@ -189,8 +208,9 @@ const getOrderDetails = async (orderId: string) => {
 
 ```typescript
 interface ListOrdersParams {
-  customerId?: string;
+  customerEmail?: string;
   status?: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
+  type?: "album" | "collage";
   limit?: number;
   nextToken?: string;
 }
@@ -198,8 +218,9 @@ interface ListOrdersParams {
 const listOrders = async (params: ListOrdersParams = {}) => {
   try {
     const result = await client.queries.listOrdersCustom({
-      customerId: params.customerId,
+      customerEmail: params.customerEmail,
       status: params.status,
+      type: params.type,
       limit: params.limit || 20,
       nextToken: params.nextToken,
     });
@@ -451,27 +472,34 @@ const PhotoBoothOrder: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [images, setImages] = useState<string[]>([]);
+  const [userDetails, setUserDetails] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    city: "",
+    postalCode: "",
+    specialInstructions: "",
+  });
 
   const createOrder = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const orderItems: OrderItem[] = [
-        {
-          id: "digital-package",
-          name: "Digital Photo Package",
-          quantity: 1,
-          price: 25.0,
+      const orderData = {
+        type: "album" as const,
+        images: images,
+        userDetails: userDetails,
+        metadata: {
+          orientation: "portrait" as const,
+          pageCount: images.length,
         },
-      ];
+      };
 
       const result = await client.mutations.createOrderCustom({
-        input: {
-          customerId: `customer-${Date.now()}`,
-          items: orderItems,
-          currency: "USD",
-        },
+        input: orderData,
       });
 
       if (result.data) {
@@ -485,6 +513,24 @@ const PhotoBoothOrder: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setImages((prev) => [...prev, result]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setUserDetails((prev) => ({ ...prev, [field]: value }));
   };
 
   const uploadPhotos = async (files: FileList) => {
