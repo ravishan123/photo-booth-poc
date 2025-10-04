@@ -17,7 +17,7 @@ const schema = a.schema({
     })
     .returns(a.json())
     .authorization((allow) => [allow.publicApiKey()])
-    .handler(a.handler.function("createOrder")),
+    .handler(a.handler.function("create-order")),
 
   getOrderDetails: a
     .query()
@@ -26,7 +26,7 @@ const schema = a.schema({
     })
     .returns(a.json())
     .authorization((allow) => [allow.publicApiKey()])
-    .handler(a.handler.function("getOrder")),
+    .handler(a.handler.function("get-order")),
 
   updateOrderStatus: a
     .mutation()
@@ -37,7 +37,7 @@ const schema = a.schema({
     })
     .returns(a.json())
     .authorization((allow) => [allow.publicApiKey()])
-    .handler(a.handler.function("updateOrderStatus")),
+    .handler(a.handler.function("update-order-status")),
 
   listOrdersCustom: a
     .query()
@@ -50,25 +50,25 @@ const schema = a.schema({
     })
     .returns(a.json())
     .authorization((allow) => [allow.publicApiKey()])
-    .handler(a.handler.function("listOrders")),
+    .handler(a.handler.function("list-orders")),
 
-  presignAlbumUpload: a
-    .mutation()
-    .arguments({
-      input: a.json().required(),
-    })
-    .returns(a.json())
-    .authorization((allow) => [allow.publicApiKey()])
-    .handler(a.handler.function("presignAlbumUpload")),
+  // presignAlbumUpload: a
+  //   .mutation()
+  //   .arguments({
+  //     input: a.json().required(),
+  //   })
+  //   .returns(a.json())
+  //   .authorization((allow) => [allow.publicApiKey()])
+  //   .handler(a.handler.function("presignAlbumUpload")),
 
-  presignCollageUpload: a
-    .mutation()
-    .arguments({
-      input: a.json().required(),
-    })
-    .returns(a.json())
-    .authorization((allow) => [allow.publicApiKey()])
-    .handler(a.handler.function("presignCollageUpload")),
+  // presignCollageUpload: a
+  //   .mutation()
+  //   .arguments({
+  //     input: a.json().required(),
+  //   })
+  //   .returns(a.json())
+  //   .authorization((allow) => [allow.publicApiKey()])
+  //   .handler(a.handler.function("presignCollageUpload")),
 
   processOrder: a
     .mutation()
@@ -77,7 +77,7 @@ const schema = a.schema({
     })
     .returns(a.json())
     .authorization((allow) => [allow.publicApiKey()])
-    .handler(a.handler.function("processOrder")),
+    .handler(a.handler.function("process-order")),
 
   Order: a
     .model({
