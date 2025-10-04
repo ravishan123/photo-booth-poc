@@ -28,8 +28,6 @@ const backend = defineBackend({
   getOrder,
   updateOrderStatus,
   listOrders,
-  presignAlbumUpload,
-  presignCollageUpload,
   processOrder,
 });
 
