@@ -7,8 +7,7 @@ import { createOrder } from "./functions/create-order/resource";
 import { getOrder } from "./functions/get-order/resource";
 import { updateOrderStatus } from "./functions/update-order-status/resource";
 import { listOrders } from "./functions/list-orders/resource";
-import { presignAlbumUpload } from "./functions/presign-album-upload/resource";
-import { presignCollageUpload } from "./functions/presign-collage-upload/resource";
+
 import { processOrder } from "./functions/process-order/resource";
 
 /**
