@@ -35,26 +35,26 @@ Amplify.configure(
 
 const client = generateClient<Schema>();
 
-interface SimplifiedOrderInput {
+interface CreateOrderInput {
   type: "album" | "collage";
-  pdfUuid: string; // UUID of the PDF uploaded to S3
-  customerEmail: string;
-  phone: string;
-  totalPrice: number;
-  address: string;
-  city: string;
-  postalCode: string;
-  name?: string; // Optional - will extract from email if not provided
-}
-
-interface UserDetails {
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  postalCode: string;
-  specialInstructions?: string;
+  images: string[]; // Base64 encoded images or URLs
+  userDetails: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    postalCode: string;
+    specialInstructions?: string;
+  };
+  metadata?: {
+    orientation?: "portrait" | "landscape";
+    pageCount?: number;
+    dimensions?: {
+      width: number;
+      height: number;
+    };
+  };
 }
 
 interface ValidationError {
@@ -62,7 +62,7 @@ interface ValidationError {
   message: string;
 }
 
-function validateSimplifiedOrderInput(input: any): {
+function validateOrderInput(input: any): {
   valid: boolean;
   errors: ValidationError[];
 } {
@@ -75,133 +75,107 @@ function validateSimplifiedOrderInput(input: any): {
     });
   }
 
-  if (!input.pdfUuid || typeof input.pdfUuid !== "string") {
+  if (!Array.isArray(input.images) || input.images.length === 0) {
     errors.push({
-      field: "pdfUuid",
-      message: "PDF UUID is required",
+      field: "images",
+      message: "Images must be a non-empty array",
     });
   }
 
-  if (!input.customerEmail || typeof input.customerEmail !== "string") {
+  if (!input.userDetails || typeof input.userDetails !== "object") {
     errors.push({
-      field: "customerEmail",
-      message: "Customer email is required",
+      field: "userDetails",
+      message: "User details are required",
     });
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.customerEmail)) {
-    errors.push({
-      field: "customerEmail",
-      message: "Invalid email format",
+  } else {
+    const requiredFields = [
+      "name",
+      "email",
+      "phone",
+      "address",
+      "city",
+      "postalCode",
+    ];
+    requiredFields.forEach((field) => {
+      if (
+        !input.userDetails[field] ||
+        typeof input.userDetails[field] !== "string"
+      ) {
+        errors.push({
+          field: `userDetails.${field}`,
+          message: `${field} is required`,
+        });
+      }
     });
+
+    // Validate email format
+    if (
+      input.userDetails.email &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.userDetails.email)
+    ) {
+      errors.push({
+        field: "userDetails.email",
+        message: "Invalid email format",
+      });
+    }
   }
 
-  if (!input.phone || typeof input.phone !== "string") {
-    errors.push({
-      field: "phone",
-      message: "Phone number is required",
-    });
-  }
+  // Validate metadata if provided
+  if (input.metadata) {
+    if (
+      input.metadata.orientation &&
+      !["portrait", "landscape"].includes(input.metadata.orientation)
+    ) {
+      errors.push({
+        field: "metadata.orientation",
+        message: "Orientation must be 'portrait' or 'landscape'",
+      });
+    }
 
-  if (!input.address || typeof input.address !== "string") {
-    errors.push({
-      field: "address",
-      message: "Address is required",
-    });
-  }
+    if (
+      input.metadata.pageCount &&
+      (typeof input.metadata.pageCount !== "number" ||
+        input.metadata.pageCount <= 0)
+    ) {
+      errors.push({
+        field: "metadata.pageCount",
+        message: "Page count must be a positive number",
+      });
+    }
 
-  if (!input.city || typeof input.city !== "string") {
-    errors.push({
-      field: "city",
-      message: "City is required",
-    });
-  }
-
-  if (!input.postalCode || typeof input.postalCode !== "string") {
-    errors.push({
-      field: "postalCode",
-      message: "Postal code is required",
-    });
-  }
-
-  if (typeof input.totalPrice !== "number" || input.totalPrice <= 0) {
-    errors.push({
-      field: "totalPrice",
-      message: "Total price must be a positive number",
-    });
+    if (input.metadata.dimensions) {
+      if (
+        typeof input.metadata.dimensions.width !== "number" ||
+        input.metadata.dimensions.width <= 0
+      ) {
+        errors.push({
+          field: "metadata.dimensions.width",
+          message: "Width must be a positive number",
+        });
+      }
+      if (
+        typeof input.metadata.dimensions.height !== "number" ||
+        input.metadata.dimensions.height <= 0
+      ) {
+        errors.push({
+          field: "metadata.dimensions.height",
+          message: "Height must be a positive number",
+        });
+      }
+    }
   }
 
   return { valid: errors.length === 0, errors };
-}
-
-// Function to generate user details from provided information
-async function generateUserDetails(
-  email: string,
-  phone: string,
-  address: string,
-  city: string,
-  postalCode: string,
-  providedName?: string
-): Promise<UserDetails> {
-  // Use provided name or extract from email
-  let name: string;
-  if (providedName && providedName.trim()) {
-    name = providedName.trim();
-  } else {
-    const emailParts = email.split("@");
-    name = emailParts[0]
-      .replace(/[._]/g, " ")
-      .replace(/\b\w/g, (l) => l.toUpperCase());
-  }
-
-  return {
-    name: name,
-    email: email,
-    phone: phone,
-    address: address,
-    city: city,
-    postalCode: postalCode,
-    specialInstructions: "Provided by customer",
-  };
-}
-
-// Function to generate metadata based on order type and PDF UUID
-function generateMetadata(type: string, pdfUuid: string) {
-  if (type === "album") {
-    return {
-      pdfUuid: pdfUuid,
-      orientation: "portrait",
-      pageCount: "calculated_from_pdf",
-      dimensions: {
-        width: 8,
-        height: 10,
-      },
-      paperType: "glossy",
-      binding: "spiral",
-      s3Path: `albums/${pdfUuid}.pdf`,
-    };
-  } else if (type === "collage") {
-    return {
-      pdfUuid: pdfUuid,
-      template: "custom_layout",
-      background: "white",
-      spacing: 10,
-      borderRadius: 5,
-      outputFormat: "high-res",
-      s3Path: `collages/${pdfUuid}.pdf`,
-    };
-  }
-
-  return {};
 }
 
 export const handler: Schema["createOrderCustom"]["functionHandler"] = async (
   event
 ) => {
   try {
-    const input: SimplifiedOrderInput = event.arguments
-      .input as SimplifiedOrderInput;
+    const input: CreateOrderInput = event.arguments.input as CreateOrderInput;
 
-    // Validate simplified input
-    const validation = validateSimplifiedOrderInput(input);
+    // Validate input
+    const validation = validateOrderInput(input);
     if (!validation.valid) {
       return {
         statusCode: 400,
@@ -213,36 +187,27 @@ export const handler: Schema["createOrderCustom"]["functionHandler"] = async (
       };
     }
 
-    // Generate user details from provided input
-    const userDetails = await generateUserDetails(
-      input.customerEmail,
-      input.phone,
-      input.address,
-      input.city,
-      input.postalCode,
-      input.name
-    );
+    // Calculate total price based on type and image count
+    let totalPrice = 0;
+    if (input.type === "album") {
+      // Album pricing: $2 per image + $5 base fee
+      totalPrice = input.images.length * 2 + 5;
+    } else if (input.type === "collage") {
+      // Collage pricing: $3 per image + $3 base fee
+      totalPrice = input.images.length * 3 + 3;
+    }
 
-    // Generate metadata based on order type and PDF UUID
-    const metadata = generateMetadata(input.type, input.pdfUuid);
-
-    // Create order with backend-generated data
+    // Create order
     const { data: order, errors } = await client.models.Order.create({
-      customerEmail: input.customerEmail,
+      customerEmail: input.userDetails.email,
       type: input.type,
       status: "PENDING",
-      totalPrice: input.totalPrice,
+      totalPrice,
       currency: "USD",
-      imageCount: 1, // PDF contains multiple images
-      images: JSON.stringify([
-        `https://s3.amazonaws.com/bucket/${input.type}s/${input.pdfUuid}.pdf`,
-      ]),
-      userDetails: JSON.stringify(userDetails),
-      metadata: JSON.stringify(metadata),
-      // Backend generates these automatically:
-      // - id: UUID generated by DynamoDB
-      // - createdAt: Current timestamp
-      // - updatedAt: Current timestamp
+      imageCount: input.images.length,
+      images: JSON.stringify(input.images),
+      userDetails: JSON.stringify(input.userDetails),
+      metadata: input.metadata ? JSON.stringify(input.metadata) : null,
     });
 
     if (errors || !order) {
@@ -259,17 +224,15 @@ export const handler: Schema["createOrderCustom"]["functionHandler"] = async (
     return {
       statusCode: 201,
       body: JSON.stringify({
-        orderId: order.id, // Backend-generated UUID
+        orderId: order.id,
         type: order.type,
         status: order.status,
         totalPrice: order.totalPrice,
         currency: order.currency,
         imageCount: order.imageCount,
-        customerEmail: order.customerEmail,
         userDetails: JSON.parse(order.userDetails as string),
-        metadata: JSON.parse(order.metadata as string),
-        createdAt: order.createdAt, // Backend-generated timestamp
-        updatedAt: order.updatedAt, // Backend-generated timestamp
+        metadata: order.metadata ? JSON.parse(order.metadata as string) : null,
+        createdAt: order.createdAt,
       }),
     };
   } catch (error) {
