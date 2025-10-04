@@ -76,30 +76,30 @@ cfnBucket.lifecycleConfiguration = {
 
 // Grant S3 permissions to presign functions (least privilege - scoped to specific prefixes)
 // Album upload function - can only write to albums/* prefix
-backend.presignAlbumUpload.resources.lambda.addToRolePolicy(
-  new PolicyStatement({
-    actions: ["s3:PutObject", "s3:PutObjectAcl"],
-    resources: [`${s3Bucket.bucketArn}/albums/*`],
-  })
-);
+// backend.presignAlbumUpload.resources.lambda.addToRolePolicy(
+//   new PolicyStatement({
+//     actions: ["s3:PutObject", "s3:PutObjectAcl"],
+//     resources: [`${s3Bucket.bucketArn}/albums/*`],
+//   })
+// );
 
-backend.presignAlbumUpload.addEnvironment(
-  "AMPLIFY_STORAGE_BUCKET_NAME",
-  s3Bucket.bucketName
-);
+// backend.presignAlbumUpload.addEnvironment(
+//   "AMPLIFY_STORAGE_BUCKET_NAME",
+//   s3Bucket.bucketName
+// );
 
-// Collage upload function - can only write to collages/* prefix
-backend.presignCollageUpload.resources.lambda.addToRolePolicy(
-  new PolicyStatement({
-    actions: ["s3:PutObject", "s3:PutObjectAcl"],
-    resources: [`${s3Bucket.bucketArn}/collages/*`],
-  })
-);
+// // Collage upload function - can only write to collages/* prefix
+// backend.presignCollageUpload.resources.lambda.addToRolePolicy(
+//   new PolicyStatement({
+//     actions: ["s3:PutObject", "s3:PutObjectAcl"],
+//     resources: [`${s3Bucket.bucketArn}/collages/*`],
+//   })
+// );
 
-backend.presignCollageUpload.addEnvironment(
-  "AMPLIFY_STORAGE_BUCKET_NAME",
-  s3Bucket.bucketName
-);
+// backend.presignCollageUpload.addEnvironment(
+//   "AMPLIFY_STORAGE_BUCKET_NAME",
+//   s3Bucket.bucketName
+// );
 
 // Grant Data API access to all functions
 const dataResources = backend.data.resources;
