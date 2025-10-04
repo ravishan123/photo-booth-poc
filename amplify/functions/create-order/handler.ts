@@ -37,7 +37,7 @@ const client = generateClient<Schema>();
 
 interface CreateOrderInput {
   type: "album" | "collage";
-  images: string[]; // Base64 encoded images or URLs
+  images: string; // UUID string
   userDetails: {
     name: string;
     email: string;
@@ -46,14 +46,6 @@ interface CreateOrderInput {
     city: string;
     postalCode: string;
     specialInstructions?: string;
-  };
-  metadata?: {
-    orientation?: "portrait" | "landscape";
-    pageCount?: number;
-    dimensions?: {
-      width: number;
-      height: number;
-    };
   };
 }
 
@@ -75,10 +67,14 @@ function validateOrderInput(input: any): {
     });
   }
 
-  if (!Array.isArray(input.images) || input.images.length === 0) {
+  if (
+    !input.images ||
+    typeof input.images !== "string" ||
+    input.images.trim() === ""
+  ) {
     errors.push({
       field: "images",
-      message: "Images must be a non-empty array",
+      message: "Images must be a valid UUID string",
     });
   }
 
@@ -120,51 +116,6 @@ function validateOrderInput(input: any): {
     }
   }
 
-  // Validate metadata if provided
-  if (input.metadata) {
-    if (
-      input.metadata.orientation &&
-      !["portrait", "landscape"].includes(input.metadata.orientation)
-    ) {
-      errors.push({
-        field: "metadata.orientation",
-        message: "Orientation must be 'portrait' or 'landscape'",
-      });
-    }
-
-    if (
-      input.metadata.pageCount &&
-      (typeof input.metadata.pageCount !== "number" ||
-        input.metadata.pageCount <= 0)
-    ) {
-      errors.push({
-        field: "metadata.pageCount",
-        message: "Page count must be a positive number",
-      });
-    }
-
-    if (input.metadata.dimensions) {
-      if (
-        typeof input.metadata.dimensions.width !== "number" ||
-        input.metadata.dimensions.width <= 0
-      ) {
-        errors.push({
-          field: "metadata.dimensions.width",
-          message: "Width must be a positive number",
-        });
-      }
-      if (
-        typeof input.metadata.dimensions.height !== "number" ||
-        input.metadata.dimensions.height <= 0
-      ) {
-        errors.push({
-          field: "metadata.dimensions.height",
-          message: "Height must be a positive number",
-        });
-      }
-    }
-  }
-
   return { valid: errors.length === 0, errors };
 }
 
@@ -187,14 +138,14 @@ export const handler: Schema["createOrderCustom"]["functionHandler"] = async (
       };
     }
 
-    // Calculate total price based on type and image count
+    // Calculate total price based on type
     let totalPrice = 0;
     if (input.type === "album") {
-      // Album pricing: $2 per image + $5 base fee
-      totalPrice = input.images.length * 2 + 5;
+      // Album pricing: $5 base fee
+      totalPrice = 5;
     } else if (input.type === "collage") {
-      // Collage pricing: $3 per image + $3 base fee
-      totalPrice = input.images.length * 3 + 3;
+      // Collage pricing: $3 base fee
+      totalPrice = 3;
     }
 
     // Create order
@@ -204,10 +155,9 @@ export const handler: Schema["createOrderCustom"]["functionHandler"] = async (
       status: "PENDING",
       totalPrice,
       currency: "USD",
-      imageCount: input.images.length,
-      images: JSON.stringify(input.images),
+      imageCount: 1, // Single UUID represents the order
+      images: input.images, // Store the UUID string directly
       userDetails: JSON.stringify(input.userDetails),
-      metadata: input.metadata ? JSON.stringify(input.metadata) : null,
     });
 
     if (errors || !order) {
@@ -230,8 +180,8 @@ export const handler: Schema["createOrderCustom"]["functionHandler"] = async (
         totalPrice: order.totalPrice,
         currency: order.currency,
         imageCount: order.imageCount,
+        images: order.images,
         userDetails: JSON.parse(order.userDetails as string),
-        metadata: order.metadata ? JSON.parse(order.metadata as string) : null,
         createdAt: order.createdAt,
       }),
     };
