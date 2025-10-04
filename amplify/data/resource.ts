@@ -86,6 +86,7 @@ const schema = a.schema({
       status: a.enum(["PENDING", "PROCESSING", "COMPLETED", "FAILED"]),
       totalPrice: a.float().required(),
       currency: a.string().default("USD"),
+      paymentMethod: a.enum(["bank_transfer", "card_payment"]),
       imageCount: a.integer().required(),
       images: a.json().required(), // Base64 encoded images or URLs
       userDetails: a.json().required(), // Customer information

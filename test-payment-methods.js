@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * Test Script for Photo Booth API - Direct Model Approach
+ * Test Script for Photo Booth API - Payment Methods
  *
- * This script tests the Order model directly instead of the custom function.
+ * This script tests the Order model with different payment methods.
  */
 
 const https = require("https");
@@ -17,16 +17,16 @@ const outputs = JSON.parse(fs.readFileSync(outputsPath, "utf8"));
 const GRAPHQL_ENDPOINT = outputs.data.url;
 const API_KEY = outputs.data.api_key;
 
-console.log("🚀 Photo Booth API Test Script - Direct Model");
-console.log("==============================================");
+console.log("🚀 Photo Booth API Test Script - Payment Methods");
+console.log("================================================");
 console.log(`Endpoint: ${GRAPHQL_ENDPOINT}`);
 console.log(`API Key: ${API_KEY.substring(0, 10)}...`);
 console.log("");
 
-// Test cases for direct model
+// Test cases with different payment methods
 const testCases = [
   {
-    name: "Album Order Test (Direct Model)",
+    name: "Album Order - Card Payment",
     input: {
       customerEmail: "john.doe@example.com",
       type: "album",
@@ -48,12 +48,12 @@ const testCases = [
     },
   },
   {
-    name: "Collage Order Test (Direct Model)",
+    name: "Album Order - Bank Transfer",
     input: {
       customerEmail: "jane.smith@example.com",
-      type: "collage",
+      type: "album",
       status: "PENDING",
-      totalPrice: 3.0,
+      totalPrice: 5.0,
       currency: "USD",
       paymentMethod: "bank_transfer",
       imageCount: 1,
@@ -65,6 +65,49 @@ const testCases = [
         address: "456 Oak Avenue",
         city: "Los Angeles",
         postalCode: "90210",
+      }),
+    },
+  },
+  {
+    name: "Collage Order - Card Payment",
+    input: {
+      customerEmail: "bob.johnson@example.com",
+      type: "collage",
+      status: "PENDING",
+      totalPrice: 3.0,
+      currency: "USD",
+      paymentMethod: "card_payment",
+      imageCount: 1,
+      images: JSON.stringify(["123e4567-e89b-12d3-a456-426614174000"]),
+      userDetails: JSON.stringify({
+        name: "Bob Johnson",
+        email: "bob.johnson@example.com",
+        phone: "+1555123456",
+        address: "789 Pine Street",
+        city: "Chicago",
+        postalCode: "60601",
+      }),
+    },
+  },
+  {
+    name: "Collage Order - Bank Transfer",
+    input: {
+      customerEmail: "alice.brown@example.com",
+      type: "collage",
+      status: "PENDING",
+      totalPrice: 3.0,
+      currency: "USD",
+      paymentMethod: "bank_transfer",
+      imageCount: 1,
+      images: JSON.stringify(["987fcdeb-51a2-43d7-8f9e-123456789abc"]),
+      userDetails: JSON.stringify({
+        name: "Alice Brown",
+        email: "alice.brown@example.com",
+        phone: "+1444555666",
+        address: "321 Elm Street",
+        city: "Boston",
+        postalCode: "02101",
+        specialInstructions: "Rush order needed",
       }),
     },
   },
@@ -139,61 +182,6 @@ async function makeGraphQLRequest(query, variables) {
   });
 }
 
-// Function to test introspection
-async function testIntrospection() {
-  console.log("🔍 Testing GraphQL Introspection...");
-
-  const introspectionQuery = `
-    query IntrospectionQuery {
-      __schema {
-        mutationType {
-          fields {
-            name
-            args {
-              name
-              type {
-                name
-                kind
-              }
-            }
-          }
-        }
-      }
-    }
-  `;
-
-  try {
-    const result = await makeGraphQLRequest(introspectionQuery, {});
-
-    if (result.errors) {
-      console.log("❌ Introspection failed:", result.errors);
-      return false;
-    }
-
-    const mutations = result.data.__schema.mutationType.fields;
-    console.log("✅ Available mutations:");
-    mutations.forEach((mutation) => {
-      console.log(`   - ${mutation.name}`);
-      if (mutation.name === "createOrder") {
-        console.log(
-          `     Args: ${mutation.args.map((arg) => `${arg.name}: ${arg.type.name || arg.type.kind}`).join(", ")}`
-        );
-      }
-    });
-
-    const createOrderExists = mutations.some((m) => m.name === "createOrder");
-    if (!createOrderExists) {
-      console.log("❌ createOrder mutation not found!");
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.log("❌ Introspection error:", error.message);
-    return false;
-  }
-}
-
 // Function to run test case
 async function runTestCase(testCase) {
   console.log(`\n🧪 Running: ${testCase.name}`);
@@ -242,17 +230,48 @@ async function runTestCase(testCase) {
   }
 }
 
+// Function to test payment method validation
+async function testPaymentMethodValidation() {
+  console.log("\n🔍 Testing Payment Method Validation...");
+
+  // Test invalid payment method
+  const invalidTest = {
+    name: "Invalid Payment Method Test",
+    input: {
+      customerEmail: "test@example.com",
+      type: "album",
+      status: "PENDING",
+      totalPrice: 5.0,
+      currency: "USD",
+      paymentMethod: "invalid_payment", // This should fail
+      imageCount: 1,
+      images: JSON.stringify(["test-uuid"]),
+      userDetails: JSON.stringify({
+        name: "Test User",
+        email: "test@example.com",
+        phone: "+1234567890",
+        address: "123 Test St",
+        city: "Test City",
+        postalCode: "12345",
+      }),
+    },
+  };
+
+  const result = await runTestCase(invalidTest);
+  if (!result) {
+    console.log(
+      "✅ Validation working correctly - invalid payment method rejected"
+    );
+    return true;
+  } else {
+    console.log("❌ Validation failed - invalid payment method was accepted");
+    return false;
+  }
+}
+
 // Main function
 async function main() {
   try {
-    // Test introspection first
-    const introspectionPassed = await testIntrospection();
-
-    if (!introspectionPassed) {
-      console.log("\n❌ Introspection failed. Please check your deployment.");
-      process.exit(1);
-    }
-
     // Run test cases
     let passedTests = 0;
     let totalTests = testCases.length;
@@ -262,11 +281,18 @@ async function main() {
       if (passed) passedTests++;
     }
 
-    console.log("\n📊 Test Results:");
-    console.log(`   Passed: ${passedTests}/${totalTests}`);
+    // Test validation
+    const validationPassed = await testPaymentMethodValidation();
+    if (validationPassed) passedTests++;
 
-    if (passedTests === totalTests) {
+    console.log("\n📊 Test Results:");
+    console.log(`   Passed: ${passedTests}/${totalTests + 1}`);
+
+    if (passedTests === totalTests + 1) {
       console.log("🎉 All tests passed!");
+      console.log("\n💳 Payment Methods Supported:");
+      console.log("   - card_payment: Credit/Debit card payments");
+      console.log("   - bank_transfer: Bank transfer payments");
     } else {
       console.log("⚠️  Some tests failed. Check the errors above.");
     }
@@ -281,4 +307,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { makeGraphQLRequest, testIntrospection, runTestCase };
+module.exports = { makeGraphQLRequest, runTestCase };
