@@ -52,6 +52,15 @@ const schema = a.schema({
     .authorization((allow) => [allow.publicApiKey()])
     .handler(a.handler.function("listOrders")),
 
+  presignPdfUpload: a
+    .mutation()
+    .arguments({
+      input: a.json().required(),
+    })
+    .returns(a.json())
+    .authorization((allow) => [allow.publicApiKey()])
+    .handler(a.handler.function("presignPdfUpload")),
+
   presignAlbumUpload: a
     .mutation()
     .arguments({
