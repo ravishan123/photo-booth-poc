@@ -5,8 +5,8 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
  *
  * Models:
  * - Order: Main order entity with status tracking
- * - Album: Album metadata and S3 references
- * - Collage: Collage metadata and S3 references
+ * - Album: Album metadata
+ * - Collage: Collage metadata
  */
 const schema = a.schema({
   // Custom queries and mutations
@@ -104,10 +104,9 @@ const schema = a.schema({
       customerId: a.string().required(),
       name: a.string().required(),
       description: a.string(),
-      s3Prefix: a.string().required(), // albums/{uuid}/
       imageCount: a.integer().default(0),
       status: a.enum(["UPLOADING", "READY", "PROCESSING", "COMPLETED"]),
-      pdfUrl: a.string(), // Presigned URL or CloudFront URL
+      pdfUrl: a.string(), // PDF URL
       createdAt: a.datetime(),
       updatedAt: a.datetime(),
     })
@@ -125,8 +124,7 @@ const schema = a.schema({
       customerId: a.string().required(),
       name: a.string().required(),
       template: a.string(), // Template type/layout
-      s3Prefix: a.string().required(), // collages/{uuid}/
-      sourceImages: a.json(), // Array of S3 keys
+      sourceImages: a.json(), // Array of image references
       outputImageUrl: a.string(), // Final collage URL
       status: a.enum(["DRAFT", "PROCESSING", "COMPLETED", "FAILED"]),
       metadata: a.json(), // Additional configuration
