@@ -39,12 +39,7 @@ const cfnBucket = s3Bucket.node.defaultChild as any;
 cfnBucket.corsConfiguration = {
   corsRules: [
     {
-      allowedOrigins: [
-        "http://localhost:3000",
-        "https://localhost:3000",
-        // Add your deployed frontend origin here
-        // 'https://your-frontend-domain.com',
-      ],
+      allowedOrigins: ["*"],
       allowedMethods: ["GET", "PUT", "POST", "DELETE", "HEAD"],
       allowedHeaders: ["*"],
       exposedHeaders: ["ETag", "Location"],
