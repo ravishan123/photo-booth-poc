@@ -45,6 +45,8 @@ const testCases = [
         postalCode: "10001",
         specialInstructions: "Please handle with care",
       }),
+      specialNote:
+        "This is for a special anniversary gift. Please make sure the colors are vibrant and high quality. Include extra pages if needed.",
     },
   },
   {
@@ -66,6 +68,8 @@ const testCases = [
         city: "Los Angeles",
         postalCode: "90210",
       }),
+      specialNote:
+        "Please use landscape orientation and ensure all photos are clearly visible.",
     },
   },
 ];
@@ -84,6 +88,7 @@ const CREATE_ORDER_MUTATION = `
       imageCount
       images
       userDetails
+      specialNote
       metadata
       errorMessage
       expiresAt
@@ -231,6 +236,9 @@ async function runTestCase(testCase) {
       );
       console.log(`   - Payment Method: ${orderData.paymentMethod}`);
       console.log(`   - Customer Email: ${orderData.customerEmail}`);
+      if (orderData.specialNote) {
+        console.log(`   - Special Note: ${orderData.specialNote}`);
+      }
       return true;
     } else {
       console.log("❌ Test failed: No data returned");

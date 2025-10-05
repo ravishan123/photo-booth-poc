@@ -7,7 +7,7 @@ import { createOrder } from "./functions/create-order/resource";
 import { getOrder } from "./functions/get-order/resource";
 import { updateOrderStatus } from "./functions/update-order-status/resource";
 import { listOrders } from "./functions/list-orders/resource";
-import { presignUpload } from "./functions/presign-upload/resource";
+// import { presignUpload } from "./functions/presign-upload/resource";
 import { processOrder } from "./functions/process-order/resource";
 
 /**
@@ -27,7 +27,7 @@ const backend = defineBackend({
   getOrder,
   updateOrderStatus,
   listOrders,
-  presignUpload,
+  // presignUpload,
   processOrder,
 });
 
@@ -111,7 +111,7 @@ const graphqlApiEndpoint = dataResources.graphqlApi.apiId;
   backend.getOrder,
   backend.updateOrderStatus,
   backend.listOrders,
-  backend.presignUpload,
+  // backend.presignUpload,
   backend.processOrder,
 ].forEach((fn) => {
   // GraphQL endpoint will be available via environment variables automatically
@@ -122,10 +122,19 @@ const graphqlApiEndpoint = dataResources.graphqlApi.apiId;
 });
 
 // Add S3 bucket name to presign upload function
-backend.presignUpload.addEnvironment(
-  "AMPLIFY_STORAGE_BUCKET_NAME",
-  s3Bucket.bucketName
-);
+// backend.presignUpload.addEnvironment(
+//   "AMPLIFY_STORAGE_BUCKET_NAME",
+//   s3Bucket.bucketName
+// );
+// backend.presignUpload.resources.lambda.addToRolePolicy(
+//   new PolicyStatement({
+//     actions: ["s3:PutObject"],
+//     resources: [
+//       `${s3Bucket.bucketArn}/albums/*`,
+//       `${s3Bucket.bucketArn}/collages/*`,
+//     ],
+//   })
+// );
 
 // Add rate limiting/throttling for public endpoints
 // Note: This is handled at the API Gateway level in Amplify Gen 2

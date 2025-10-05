@@ -81,6 +81,7 @@ const schema = a.schema({
       imageCount: a.integer().required(),
       images: a.json().required(), // Base64 encoded images or URLs
       userDetails: a.json().required(), // Customer information
+      specialNote: a.string(), // Optional frontend text area field
       metadata: a.json(), // Order metadata (orientation, pageCount, dimensions)
       errorMessage: a.string(),
       expiresAt: a.integer(), // Unix timestamp for TTL

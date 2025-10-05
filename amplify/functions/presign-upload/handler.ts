@@ -1,6 +1,7 @@
+// @ts-ignore
 const AWS = require("aws-sdk");
 
-// Configure S3 client
+// Configure S3 client (AWS SDK v2)
 const s3 = new AWS.S3({
   region: process.env.AWS_REGION || "us-east-1",
 });
@@ -125,7 +126,7 @@ export const handler = async (event: any) => {
     const sanitizedFileName = input.fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
     const key = `${input.type}s/${input.uuid}/${timestamp}_${sanitizedFileName}`;
 
-    // Create presigned URL
+    // Create presigned URL using AWS SDK v2
     const params = {
       Bucket: process.env.AMPLIFY_STORAGE_BUCKET_NAME!,
       Key: key,

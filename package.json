@@ -33,6 +33,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "aws-amplify": "^6.15.7"
+    "aws-amplify": "^6.15.7",
+    "aws-sdk": "^2.1692.0"
   }
 }
