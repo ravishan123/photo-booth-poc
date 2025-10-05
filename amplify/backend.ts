@@ -7,7 +7,7 @@ import { createOrder } from "./functions/create-order/resource";
 import { getOrder } from "./functions/get-order/resource";
 import { updateOrderStatus } from "./functions/update-order-status/resource";
 import { listOrders } from "./functions/list-orders/resource";
-
+import { presignUpload } from "./functions/presign-upload/resource";
 import { processOrder } from "./functions/process-order/resource";
 
 /**
@@ -27,6 +27,7 @@ const backend = defineBackend({
   getOrder,
   updateOrderStatus,
   listOrders,
+  presignUpload,
   processOrder,
 });
 
@@ -110,6 +111,7 @@ const graphqlApiEndpoint = dataResources.graphqlApi.apiId;
   backend.getOrder,
   backend.updateOrderStatus,
   backend.listOrders,
+  backend.presignUpload,
   backend.processOrder,
 ].forEach((fn) => {
   // GraphQL endpoint will be available via environment variables automatically
@@ -118,6 +120,12 @@ const graphqlApiEndpoint = dataResources.graphqlApi.apiId;
     `https://${graphqlApiEndpoint}.appsync-api.${backend.storage.resources.bucket.stack.region}.amazonaws.com/graphql`
   );
 });
+
+// Add S3 bucket name to presign upload function
+backend.presignUpload.addEnvironment(
+  "AMPLIFY_STORAGE_BUCKET_NAME",
+  s3Bucket.bucketName
+);
 
 // Add rate limiting/throttling for public endpoints
 // Note: This is handled at the API Gateway level in Amplify Gen 2

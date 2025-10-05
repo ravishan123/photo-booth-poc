@@ -52,23 +52,14 @@ const schema = a.schema({
     .authorization((allow) => [allow.publicApiKey()])
     .handler(a.handler.function("list-orders")),
 
-  // presignAlbumUpload: a
+  // presignUpload: a
   //   .mutation()
   //   .arguments({
   //     input: a.json().required(),
   //   })
   //   .returns(a.json())
   //   .authorization((allow) => [allow.publicApiKey()])
-  //   .handler(a.handler.function("presignAlbumUpload")),
-
-  // presignCollageUpload: a
-  //   .mutation()
-  //   .arguments({
-  //     input: a.json().required(),
-  //   })
-  //   .returns(a.json())
-  //   .authorization((allow) => [allow.publicApiKey()])
-  //   .handler(a.handler.function("presignCollageUpload")),
+  //   .handler(a.handler.function("presign-upload")),
 
   processOrder: a
     .mutation()
